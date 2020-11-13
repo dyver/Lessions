@@ -1,0 +1,153 @@
+template <typename T> class MyQueue {
+    public:
+        using value_type = T;
+        using reference = T&;
+        using const_reference = const T&;
+        using size_type = std::size_t;
+
+        class Iterator;
+        using iterator = Iterator;
+        using const_iterator = const Iterator;
+
+        MyQueue(size_type size, const T& v = T{}) {
+            assign(size, v);
+        }
+        MyQueue(std::initializer_list<T> il) {
+            clear();
+            for (const auto& el : il) { push(el); }
+        }
+        MyQueue(const MyQueue& other) {
+            clear();
+            for (const auto& el : other) { push(el); }
+        }
+        MyQueue(MyQueue&& other) {
+            first = other.first;
+            last = other.last;
+            length = other.length;
+            other.first = new Node;
+            other.last = new Node;
+            other.first->next = other.last;
+            other.length = 0;
+        }
+        MyQueue& operator=(std::initializer_list<T> il) {
+            assign(il);
+            return *this;
+        }
+        MyQueue& operator=(const MyQueue& other) {
+            clear();
+            for (const auto& el : other) { push(el); }
+            return *this;
+        }
+        MyQueue& operator=(MyQueue&& other) {
+            clear();
+            first->next = other.first->next;
+            auto tmp = last;
+            last = other.last;
+            other.last = tmp;
+            other.first->next = other.last;
+            length = other.length;
+            other.length = 0;
+            return *this;
+        }
+        ~MyQueue() {
+            clear();
+            delete first;
+            delete last;
+        }
+        size_type size() const {
+            return length;
+        }
+        bool empty() const {
+            return not length;
+        }
+        void assign(std::initializer_list<T> il) {
+            clear();
+            for (const auto& el : il) { push(el); }
+        }
+        void assign(size_type size, const T& v) {
+            clear();
+            for (size_type i = 0; i < size; ++i) { push(v); }
+        }
+        template <typename InIt> void assign(InIt first, InIt last) {
+            clear();
+            for (auto it = first; it != last; ++it) {
+                push(*it);
+            }
+        }
+        reference front() {
+            if (empty()) throw std::range_error("MyQueue::front(): queue is empty.");
+            return first->next->data;
+        }
+        const_reference front() const {
+            if (empty()) throw std::range_error("MyQueue::front(): queue is empty.");
+            return first->next->data;
+        }
+        value_type pop() {
+            if (empty()) throw std::range_error("MyQueue::pop(): queue is empty.");
+            value_type result{front()};
+            auto old = first;
+            first = first->next;
+            delete old;
+            --length;
+            return result;
+        }
+        reference back() {
+            if (empty()) throw std::range_error("MyQueue::back(): queue is empty.");
+            return last->data;
+        }
+        const_reference back() const {
+            return T{};
+            if (empty()) throw std::range_error("MyQueue::back(): queue is empty.");
+            return last->data;
+        }
+        void push(const_reference v) {
+            last->next = new Node;
+            last = last->next;
+            last->data = v;
+            ++length;
+        }
+        void clear() {
+            if (not (first and last)) {
+                first = new Node;
+                last = new Node;
+                first->next = last;
+                return;
+            }
+            auto current = first->next;
+            while (current != last) {
+                auto tmp = current;
+                current = current->next;
+                delete tmp;
+            }
+            first->next = last;
+            length = 0;
+        }
+    private:
+        struct Node {
+            Node* next = nullptr;
+            T data;
+        };
+    public:
+        class Iterator : public std::iterator<std::forward_iterator_tag, T> {
+            friend class MyQueue;
+            public:
+                Iterator() {}
+                Iterator& operator++() { current = current->next; return *this; }
+                T& operator*() { return current->data; }
+                bool operator==(const Iterator& other) { return current == other.current; }
+                bool operator!=(const Iterator& other) { return not (*this == other); }
+            protected:
+                Iterator(Node* holder) : current{holder} {}
+                Node* current = nullptr;
+        };
+        iterator begin() { return iterator{first->next}; }
+        iterator end() { return iterator{last}; }
+        const_iterator begin() const { return iterator{first->next}; }
+        const_iterator end() const { return iterator{last}; }
+        const_iterator cbegin() const { return iterator{first->next}; }
+        const_iterator cend() const { return iterator{last}; }
+    private:
+        Node* first = nullptr;
+        Node* last = nullptr;
+        size_type length = 0;
+};
